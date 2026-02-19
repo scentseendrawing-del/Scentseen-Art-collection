@@ -1,0 +1,1560 @@
+<!doctype html>
+<html lang="th">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scentseen - Art Gallery</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { 
+            font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
+        }
+        .gallery-item {
+            transition: all 0.3s ease;
+            transform: scale(0.85);
+            border: 2px solid transparent;
+        }
+        .gallery-item:hover {
+            transform: scale(1);
+            box-shadow: 0 20px 40px rgba(239, 68, 68, 0.2);
+            border: 2px solid rgba(239, 68, 68, 0.3);
+        }
+        .gallery-item:hover h3 {
+            color: #ef4444;
+        }
+        .admin-panel {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .category-btn.active {
+            color: #ef4444;
+            font-weight: 600;
+        }
+        .category-btn {
+            position: relative;
+        }
+        .category-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 2px;
+            background-color: #ef4444;
+        }
+        .view-mode-indicator {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: rgba(59, 130, 246, 0.9);
+            color: white;
+            padding: 8px 16px;
+            rounded: 8px;
+            font-size: 12px;
+            z-index: 30;
+        }
+        .url-warning {
+            background: linear-gradient(45deg, #fbbf24, #f59e0b);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        .debug-info {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+  <script src="https://cdn.tailwindcss.com/3.4.17" type="text/javascript"></script>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="/_sdk/element_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="bg-white text-gray-900">
+  <!-- View Mode Indicator -->
+  <div id="view-mode-indicator" class="view-mode-indicator rounded-lg hidden">
+   👁️ Viewing Shared Gallery
+  </div><!-- Debug Info (will be hidden in production) -->
+  <div id="debug-info" class="debug-info hidden">
+   <strong>Debug Info:</strong><br>
+   <div id="debug-content"></div>
+  </div><!-- Header -->
+  <header class="bg-white border-b border-gray-100 sticky top-0 z-40">
+   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center py-6">
+     <h1 class="text-4xl font-bold"><span class="text-black">scent</span><span class="text-red-500">seen</span></h1>
+     <nav class="hidden md:flex space-x-8">
+      <a href="#gallery" class="text-gray-600 hover:text-red-500 transition-all duration-300 hover:scale-110 hover:-translate-y-1">Gallery</a> <a href="#about" class="text-gray-600 hover:text-red-500 transition-all duration-300 hover:scale-110 hover:-translate-y-1">About</a> <a href="#contact" class="text-gray-600 hover:text-red-500 transition-all duration-300 hover:scale-110 hover:-translate-y-1">Contact</a>
+     </nav>
+    </div>
+   </div>
+  </header><!-- Hero Section -->
+  <section class="bg-gradient-to-br from-gray-50 to-white py-20">
+   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <h2 class="text-4xl text-black mb-6"><span class="font-medium">Art</span> <span class="font-light">Collection</span></h2>
+    <p class="text-sm text-gray-500 max-w-2xl mx-auto">A curated space of my works, skills, and memories from different stages of life, captured through time.</p>
+    <div class="mt-8 w-24 h-1 bg-red-500 mx-auto"></div>
+   </div>
+  </section><!-- Gallery Section -->
+  <section id="gallery" class="py-12 bg-white">
+   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Category Filter -->
+    <div class="mb-4">
+     <nav id="category-nav" class="flex items-center space-x-4">
+      <button onclick="filterCategory('all')" class="category-btn active text-gray-600 hover:text-red-500 transition-all duration-300 hover:scale-110 hover:-translate-y-1 px-2 py-2">All</button> <button onclick="filterCategory('portraits')" class="category-btn text-gray-600 hover:text-red-500 transition-all duration-300 hover:scale-110 hover:-translate-y-1 px-2 py-2">Portraits</button> <button onclick="filterCategory('notableportraits')" class="category-btn text-gray-600 hover:text-red-500 transition-all duration-300 hover:scale-110 hover:-translate-y-1 px-2 py-2">Notable Portraits</button> <button onclick="filterCategory('clientportraits')" class="category-btn text-gray-600 hover:text-red-500 transition-all duration-300 hover:scale-110 hover:-translate-y-1 px-2 py-2">Client Portraits</button>
+     </nav>
+    </div>
+    <div id="gallery-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+     <!-- Artworks will be loaded here -->
+    </div>
+   </div>
+  </section><!-- About Section -->
+  <section id="about" class="py-20 bg-gray-50">
+   <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <h2 class="text-4xl font-light text-black mb-4">About Scentseen</h2>
+    <div class="w-16 h-0.5 bg-red-500 mx-auto mb-8"></div>
+    <p class="text-sm text-gray-500 leading-relaxed">At time, a forgotten image awakens -- called forth by the quiet <strong>scent</strong> of something familiar.</p>
+   </div>
+  </section><!-- Contact Section -->
+  <section id="contact" class="py-20 bg-white">
+   <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <h2 class="text-2xl font-light text-black mb-4">Get in Touch</h2>
+    <div class="w-16 h-0.5 bg-red-500 mx-auto mb-8"></div>
+    <p class="text-sm text-gray-500 mb-8">"Some memories fall with the rain, through the scent of earth that stirs the past awake."</p><a href="https://kku-creative.my.canva.site/queue-managment-scentseen" target="_blank" rel="noopener noreferrer" class="inline-block bg-red-500 text-white px-8 py-3 rounded-lg hover:bg-red-600 transition-colors"> Contact Us </a>
+   </div>
+  </section><!-- Footer with Hidden Admin Access -->
+  <footer class="bg-black text-white py-12">
+   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center">
+     <h3 class="text-2xl font-light mb-4"><span class="text-white">scent</span><span class="text-red-500">seen</span></h3>
+     <div class="text-xs text-gray-500 mb-8">
+      <p>Scentseen Drawin'Art</p>
+      <p>e-mail : scentseen.drawing@gmail.com | Facebook : Scentseen Drawin'Art | Tiktok : Scentseen_</p>
+     </div><!-- Hidden Admin Button -->
+     <div class="mt-12 pt-8 border-t border-gray-800">
+      <button id="admin-toggle" class="w-16 h-2 bg-gray-600 hover:bg-red-500 transition-colors rounded-full"> </button>
+     </div>
+    </div>
+   </div>
+  </footer><!-- Artwork Detail Modal -->
+  <div id="artwork-modal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden">
+   <div class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+     <div class="p-6 border-b border-gray-200">
+      <div class="flex justify-between items-center">
+       <h3 id="modal-title" class="text-lg font-medium text-gray-700">Artwork Title</h3><button id="close-artwork-modal" class="text-gray-500 hover:text-red-500 text-2xl">×</button>
+      </div>
+     </div>
+     <div class="p-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+       <div class="bg-gray-100 flex items-center justify-center rounded-lg overflow-hidden" style="min-height: 300px;">
+        <div id="modal-image-container" class="w-full h-full flex items-center justify-center">
+         <svg class="w-32 h-32 text-gray-400" fill="currentColor" viewbox="0 0 20 20">
+          <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+         </svg>
+        </div>
+       </div>
+       <div>
+        <h4 class="text-lg font-semibold text-black mb-4">Description</h4>
+        <p id="modal-description" class="text-gray-600 leading-relaxed mb-6">Artwork description will appear here.</p>
+        <div class="text-xs text-gray-400">
+         <p>Created: <span id="modal-timestamp">--</span></p>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div><!-- Admin Panel Modal -->
+  <div id="admin-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+   <div class="flex items-center justify-center min-h-screen p-4">
+    <div class="admin-panel rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+     <div class="p-6 border-b border-gray-200">
+      <div class="flex justify-between items-center">
+       <h3 class="text-2xl font-semibold text-black">👥 Collaborative Panel</h3><button id="close-admin" class="text-gray-500 hover:text-red-500 text-2xl">×</button>
+      </div>
+     </div>
+     <div class="p-6">
+      <!-- Share Gallery -->
+      <div class="mb-8">
+       <h4 class="text-lg font-semibold text-black mb-4">🔗 Share Gallery (URL Method)</h4><!-- URL Warning -->
+       <div class="url-warning">
+        <div class="flex items-start space-x-2">
+         <span class="text-xl">⚠️</span>
+         <div>
+          <p class="font-semibold mb-1">คำเตือน: ลิ้งค์จะยาวมาก!</p>
+          <p class="text-sm">ข้อมูลทั้งหมดจะถูกเก็บในลิ้งค์ ทำให้ลิ้งค์ยาวมาก แต่แชร์ได้ทุกที่!</p>
+         </div>
+        </div>
+       </div>
+       <div class="bg-gray-50 p-4 rounded-lg">
+        <p class="text-sm text-gray-600 mb-4">แชร์แกลเลอรี่แบบ Collaborative - ทุกคนที่มีลิ้งค์สามารถเพิ่มและแก้ไขได้:</p>
+        <div class="space-y-3">
+         <button id="generate-share-url" class="w-full bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors"> 👥 สร้างลิ้งค์ Collaborative Gallery </button>
+         <div id="share-url-container" class="hidden">
+          <label for="share-url-input" class="block text-sm font-medium text-gray-700 mb-2">ลิ้งค์แชร์ของคุณ:</label>
+          <div class="flex space-x-2">
+           <textarea id="share-url-input" readonly rows="3" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-sm resize-none"></textarea>
+           <div class="flex flex-col space-y-2">
+            <button id="copy-share-url" class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors whitespace-nowrap"> 📋 Copy </button> <button id="test-share-url" class="bg-purple-500 text-white px-6 py-2 rounded-lg hover:bg-purple-600 transition-colors whitespace-nowrap text-sm"> 👁️ ทดสอบ </button>
+           </div>
+          </div>
+          <div class="mt-2 text-xs text-gray-500 space-y-1">
+           <p>✅ ใช้ได้ทุกเบราว์เซอร์และทุกเครื่อง</p>
+           <p>✅ ไม่ต้องสมัครสมาชิกหรือเสียเงิน</p>
+           <p>✅ ทุกคนที่มีลิ้งค์ = Admin เต็มสิทธิ์!</p>
+           <p>✅ เพิ่ม ลบ แก้ไข ได้ทุกคน</p>
+           <p>⚠️ ลิ้งค์จะยาวมาก (อาจเกิน 10,000 ตัวอักษร)</p>
+           <p id="url-length-info" class="font-medium text-blue-600"></p>
+           <p class="text-purple-600 font-medium">💡 กด "ทดสอบ" เพื่อดูว่าคนอื่นจะเห็นอะไร</p>
+          </div>
+         </div>
+        </div>
+       </div>
+      </div><!-- Debug Toggle -->
+      <div class="mb-8">
+       <button id="toggle-debug" class="text-xs text-gray-500 hover:text-gray-700"> 🔧 Toggle Debug Info </button>
+      </div><!-- Manage Categories -->
+      <div class="mb-8">
+       <h4 class="text-lg font-semibold text-black mb-4">Manage Categories</h4>
+       <div class="space-y-4">
+        <div class="flex space-x-2">
+         <input type="text" id="new-category-name" placeholder="New Category Name" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"> <button id="add-category" class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors"> Add Category </button>
+        </div>
+        <div id="categories-list" class="space-y-2">
+         <!-- Categories will be listed here -->
+        </div>
+       </div>
+      </div><!-- Add New Artwork -->
+      <div class="mb-8">
+       <h4 class="text-lg font-semibold text-black mb-4">Add New Artwork</h4>
+       <div class="space-y-4">
+        <input type="text" id="new-title" placeholder="Artwork Title" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"> <textarea id="new-description" placeholder="Artwork Description" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"></textarea> <select id="new-category" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"> <option value="">Select Category</option> <option value="portraits">Portraits</option> <option value="notableportraits">Notable Portraits</option> <option value="clientportraits">Client Portraits</option> </select> <input type="file" id="new-image" accept="image/*" class="w-full text-transparent file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border file:border-white file:text-sm file:font-semibold file:bg-white file:text-red-500 hover:file:bg-gray-50"> <button id="add-artwork" class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors"> Add Artwork </button>
+       </div>
+      </div><!-- Edit Existing Artworks -->
+      <div>
+       <h4 class="text-lg font-semibold text-black mb-4">Edit Existing Artworks</h4>
+       <div id="edit-list" class="space-y-4">
+        <!-- Existing artworks will be listed here -->
+       </div>
+      </div><!-- Quick Edit Modal -->
+      <div id="quick-edit-modal" class="fixed inset-0 bg-black bg-opacity-50 z-60 hidden">
+       <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg max-w-md w-full">
+         <div class="p-6 border-b border-gray-200">
+          <div class="flex justify-between items-center">
+           <h3 class="text-lg font-semibold text-black">Quick Edit</h3><button id="close-quick-edit" class="text-gray-500 hover:text-red-500 text-xl">×</button>
+          </div>
+         </div>
+         <div class="p-6">
+          <div class="space-y-4">
+           <input type="text" id="quick-edit-title" placeholder="Artwork Title" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"> <textarea id="quick-edit-description" placeholder="Artwork Description" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"></textarea> <select id="quick-edit-category" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"> <option value="">Select Category</option> <option value="portraits">Portraits</option> <option value="notableportraits">Notable Portraits</option> <option value="clientportraits">Client Portraits</option> </select> <input type="file" id="quick-edit-image" accept="image/*" class="w-full text-transparent file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border file:border-white file:text-sm file:font-semibold file:bg-white file:text-red-500 hover:file:bg-gray-50">
+           <div class="flex space-x-3">
+            <button id="save-quick-edit" class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors flex-1"> Save Changes </button> <button id="delete-quick-edit" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors"> Delete </button>
+           </div>
+          </div>
+         </div>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+        let artworkCounter = 3;
+        let currentEditId = null;
+        let categories = ['portraits', 'notableportraits', 'clientportraits'];
+        let artworks = [
+            {id: 1, title: "Untitled Artwork #1", description: "A beautiful piece that captures the essence of modern art.", image: null, timestamp: new Date().toLocaleString(), category: 'portraits'},
+            {id: 2, title: "Untitled Artwork #2", description: "An expressive work that tells a story through color and form.", image: null, timestamp: new Date().toLocaleString(), category: 'notableportraits'},
+            {id: 3, title: "Untitled Artwork #3", description: "A minimalist approach to contemporary visual expression.", image: null, timestamp: new Date().toLocaleString(), category: 'clientportraits'}
+        ];
+        
+        let isAdminMode = true; // Everyone is admin now!
+
+        // Debug functions
+        function debugLog(message, data = null) {
+            console.log(message, data);
+            const debugContent = document.getElementById('debug-content');
+            if (debugContent) {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = `[${timestamp}] ${message}`;
+                if (data) {
+                    debugContent.innerHTML += `${logEntry}: ${JSON.stringify(data, null, 2)}<br>`;
+                } else {
+                    debugContent.innerHTML += `${logEntry}<br>`;
+                }
+                debugContent.scrollTop = debugContent.scrollHeight;
+            }
+        }
+
+        // Toggle debug info
+        document.getElementById('toggle-debug').addEventListener('click', function() {
+            const debugInfo = document.getElementById('debug-info');
+            debugInfo.classList.toggle('hidden');
+        });
+
+        // URL Parameters + Base64 Functions
+        function encodeGalleryData() {
+            debugLog('Encoding gallery data...');
+            const galleryData = {
+                artworks: artworks,
+                categories: categories,
+                counter: artworkCounter,
+                timestamp: new Date().toISOString()
+            };
+            
+            debugLog('Data to encode', galleryData);
+            
+            try {
+                const jsonString = JSON.stringify(galleryData);
+                debugLog('JSON string length', jsonString.length);
+                
+                // Use encodeURIComponent before btoa for better Unicode support
+                const base64Data = btoa(encodeURIComponent(jsonString));
+                debugLog('Base64 encoded successfully', base64Data.length);
+                
+                return base64Data;
+            } catch (error) {
+                debugLog('Error encoding gallery data', error);
+                return null;
+            }
+        }
+
+        function decodeGalleryData(base64Data) {
+            debugLog('Decoding gallery data...');
+            debugLog('Base64 data length', base64Data.length);
+            debugLog('First 100 chars', base64Data.substring(0, 100));
+            
+            try {
+                // Use decodeURIComponent after atob for better Unicode support
+                const jsonString = decodeURIComponent(atob(base64Data));
+                debugLog('Decoded JSON string length', jsonString.length);
+                debugLog('JSON preview', jsonString.substring(0, 200));
+                
+                const galleryData = JSON.parse(jsonString);
+                debugLog('Parsed gallery data successfully', galleryData);
+                
+                return galleryData;
+            } catch (error) {
+                debugLog('Error decoding gallery data', error);
+                debugLog('Base64 data that failed', base64Data.substring(0, 200));
+                return null;
+            }
+        }
+
+        function generateShareURL() {
+            debugLog('Generating share URL...');
+            debugLog('Current artworks', artworks);
+            debugLog('Current categories', categories);
+            
+            const encodedData = encodeGalleryData();
+            if (!encodedData) {
+                debugLog('Failed to encode data');
+                alert('เกิดข้อผิดพลาดในการสร้างลิ้งค์');
+                return null;
+            }
+            
+            const baseURL = window.location.origin + window.location.pathname;
+            const shareURL = `${baseURL}?gallery=${encodedData}`;
+            
+            debugLog('Generated URL length', shareURL.length);
+            debugLog('URL preview', shareURL.substring(0, 200));
+            
+            return shareURL;
+        }
+
+        function loadFromURL() {
+            debugLog('Loading from URL...');
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const galleryData = urlParams.get('gallery');
+            
+            debugLog('URL Parameters', window.location.search);
+            debugLog('Gallery data found', galleryData ? 'Yes' : 'No');
+            
+            if (galleryData) {
+                debugLog('Decoding gallery data...');
+                const decodedData = decodeGalleryData(galleryData);
+                
+                if (decodedData && decodedData.artworks) {
+                    debugLog('Loading shared gallery with artworks', decodedData.artworks.length);
+                    
+                    // Replace current data with shared data
+                    artworks = decodedData.artworks;
+                    categories = decodedData.categories || ['portraits', 'notableportraits', 'clientportraits'];
+                    artworkCounter = decodedData.counter || artworks.length;
+                    
+                    isAdminMode = false;
+                    document.getElementById('view-mode-indicator').classList.remove('hidden');
+                    
+                    debugLog('Successfully loaded shared gallery');
+                    return true;
+                } else {
+                    debugLog('Failed to decode gallery data or no artworks found');
+                }
+            }
+            
+            // Load from localStorage if no URL data
+            debugLog('Loading from localStorage...');
+            loadDataFromStorage();
+            isAdminMode = true;
+            return false;
+        }
+
+        function showSharedGalleryNotification() {
+            debugLog('Showing collaborative gallery notification');
+            
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 left-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50 max-w-sm';
+            notification.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="font-semibold mb-2">👥 Collaborative Gallery</p>
+                        <p class="text-sm">ทุกคนสามารถเพิ่ม แก้ไข และจัดการผลงานได้!</p>
+                        <p class="text-xs mt-1 opacity-75">รูปภาพ: ${artworks.length} รูป</p>
+                        <p class="text-xs opacity-75">อัปเดต: ${new Date().toLocaleString()}</p>
+                        <p class="text-xs mt-2 bg-green-600 p-2 rounded">✨ คลิกจุดเล็กๆ ที่ Footer เพื่อเข้าสู่โหมดแก้ไข</p>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-white hover:text-gray-200 ml-2">×</button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 15000);
+        }
+
+        // Load data from localStorage
+        function loadDataFromStorage() {
+            debugLog('Loading data from localStorage...');
+            
+            const savedArtworks = localStorage.getItem('scentseen_artworks');
+            const savedCategories = localStorage.getItem('scentseen_categories');
+            const savedCounter = localStorage.getItem('scentseen_counter');
+            
+            if (savedArtworks) {
+                artworks = JSON.parse(savedArtworks);
+                debugLog('Loaded artworks from localStorage', artworks.length);
+            }
+            if (savedCategories) {
+                categories = JSON.parse(savedCategories);
+                debugLog('Loaded categories from localStorage', categories);
+            }
+            if (savedCounter) {
+                artworkCounter = parseInt(savedCounter);
+                debugLog('Loaded counter from localStorage', artworkCounter);
+            }
+        }
+
+        // Save data to localStorage
+        function saveDataToStorage() {
+            try {
+                debugLog('Saving data to localStorage...');
+                debugLog('Artworks to save:', artworks.length);
+                debugLog('Categories to save:', categories);
+                debugLog('Counter to save:', artworkCounter);
+                
+                localStorage.setItem('scentseen_artworks', JSON.stringify(artworks));
+                localStorage.setItem('scentseen_categories', JSON.stringify(categories));
+                localStorage.setItem('scentseen_counter', artworkCounter.toString());
+                localStorage.setItem('scentseen_last_save', new Date().toISOString());
+                
+                // Verify save
+                const savedArtworks = localStorage.getItem('scentseen_artworks');
+                const parsedArtworks = JSON.parse(savedArtworks);
+                debugLog('Verification - saved artworks count:', parsedArtworks.length);
+                
+                debugLog('Data saved successfully to localStorage');
+                
+                // Show auto-save indicator
+                showAutoSaveIndicator();
+            } catch (error) {
+                debugLog('Error saving to localStorage:', error);
+                console.error('Failed to save data:', error);
+                showSaveErrorNotification();
+            }
+        }
+
+        function showAutoSaveIndicator() {
+            // Remove existing indicator if any
+            const existingIndicator = document.getElementById('auto-save-indicator');
+            if (existingIndicator) {
+                existingIndicator.remove();
+            }
+
+            const indicator = document.createElement('div');
+            indicator.id = 'auto-save-indicator';
+            indicator.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 text-sm';
+            indicator.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                    <span>บันทึกอัตโนมัติแล้ว</span>
+                </div>
+            `;
+            
+            document.body.appendChild(indicator);
+            
+            // Fade out after 3 seconds
+            setTimeout(() => {
+                if (indicator.parentElement) {
+                    indicator.style.opacity = '0';
+                    indicator.style.transition = 'opacity 0.5s ease';
+                    setTimeout(() => {
+                        if (indicator.parentElement) {
+                            indicator.remove();
+                        }
+                    }, 500);
+                }
+            }, 3000);
+        }
+
+        function showSaveErrorNotification() {
+            const notification = document.createElement('div');
+            notification.className = 'fixed bottom-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50 max-w-sm';
+            notification.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="font-semibold mb-2">❌ เกิดข้อผิดพลาด!</p>
+                        <p class="text-sm">ไม่สามารถบันทึกข้อมูลได้</p>
+                        <p class="text-xs mt-1">กรุณาลองใหม่อีกครั้ง</p>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-white hover:text-gray-200 ml-2">×</button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 8000);
+        }
+
+        // Generate Share URL Button
+        document.getElementById('generate-share-url').addEventListener('click', function() {
+            const shareURL = generateShareURL();
+            if (shareURL) {
+                const container = document.getElementById('share-url-container');
+                const input = document.getElementById('share-url-input');
+                const lengthInfo = document.getElementById('url-length-info');
+                
+                input.value = shareURL;
+                lengthInfo.textContent = `ความยาวลิ้งค์: ${shareURL.length.toLocaleString()} ตัวอักษร`;
+                
+                container.classList.remove('hidden');
+                
+                // Show success notification
+                showURLGeneratedNotification(shareURL.length);
+            }
+        });
+
+        function showURLGeneratedNotification(urlLength) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50 max-w-sm';
+            
+            let warningText = '';
+            if (urlLength > 2000) {
+                warningText = '<p class="text-xs mt-2 bg-yellow-600 p-2 rounded">⚠️ ลิ้งค์ยาวมาก อาจมีปัญหาในบางแอป</p>';
+            }
+            
+            notification.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="font-semibold mb-2">✅ สร้างลิ้งค์สำเร็จ!</p>
+                        <p class="text-sm mb-2">ลิ้งค์พร้อมแชร์แล้ว</p>
+                        <p class="text-xs">ความยาว: ${urlLength.toLocaleString()} ตัวอักษร</p>
+                        <p class="text-xs">รูปภาพ: ${artworks.length} รูป</p>
+                        ${warningText}
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-white hover:text-gray-200 ml-2">×</button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 10000);
+        }
+
+        function showSuccessNotification(title, message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50 max-w-sm';
+            notification.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="font-semibold mb-2">${title}</p>
+                        <p class="text-sm">${message}</p>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-white hover:text-gray-200 ml-2">×</button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+
+        // Copy Share URL
+        document.getElementById('copy-share-url').addEventListener('click', function() {
+            const input = document.getElementById('share-url-input');
+            if (input && input.value) {
+                navigator.clipboard.writeText(input.value).then(() => {
+                    const originalText = this.textContent;
+                    this.textContent = '✅ Copied!';
+                    this.className = 'bg-green-600 text-white px-6 py-2 rounded-lg whitespace-nowrap';
+                    setTimeout(() => {
+                        this.textContent = originalText;
+                        this.className = 'bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors whitespace-nowrap';
+                    }, 2000);
+                }).catch(() => {
+                    // Fallback for older browsers
+                    input.select();
+                    document.execCommand('copy');
+                    const originalText = this.textContent;
+                    this.textContent = '✅ Copied!';
+                    setTimeout(() => {
+                        this.textContent = originalText;
+                    }, 2000);
+                });
+            }
+        });
+
+        // Test Share URL
+        document.getElementById('test-share-url').addEventListener('click', function() {
+            const input = document.getElementById('share-url-input');
+            if (input && input.value) {
+                debugLog('Opening test URL in new tab');
+                
+                // Show notification
+                const notification = document.createElement('div');
+                notification.className = 'fixed top-4 right-4 bg-purple-500 text-white p-4 rounded-lg shadow-lg z-50 max-w-sm';
+                notification.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-semibold mb-2">🚀 เปิดทดสอบแล้ว!</p>
+                            <p class="text-sm mb-2">แท็บใหม่จะเปิดขึ้นมา</p>
+                            <p class="text-xs">นี่คือสิ่งที่คนอื่นจะเห็น</p>
+                        </div>
+                        <button onclick="this.parentElement.parentElement.remove()" class="text-white hover:text-gray-200 ml-2">×</button>
+                    </div>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.remove();
+                    }
+                }, 5000);
+                
+                // Open in new tab
+                window.open(input.value, '_blank', 'noopener,noreferrer');
+            }
+        });
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            debugLog('Page loaded, initializing...');
+            
+            // Check URL parameters first
+            const urlParams = new URLSearchParams(window.location.search);
+            const galleryParam = urlParams.get('gallery');
+            
+            debugLog('URL search params:', window.location.search);
+            debugLog('Gallery parameter found:', galleryParam ? 'Yes' : 'No');
+            
+            let isSharedGallery = false;
+            
+            if (galleryParam) {
+                debugLog('Loading shared gallery from URL...');
+                const decodedData = decodeGalleryData(galleryParam);
+                
+                if (decodedData && decodedData.artworks && decodedData.artworks.length > 0) {
+                    debugLog('Successfully decoded shared gallery data');
+                    artworks = decodedData.artworks;
+                    categories = decodedData.categories || ['portraits', 'notableportraits', 'clientportraits'];
+                    artworkCounter = decodedData.counter || artworks.length;
+                    isAdminMode = true; // Everyone has admin access!
+                    isSharedGallery = true;
+                    
+                    // Show collaborative mode indicator instead
+                    document.getElementById('view-mode-indicator').innerHTML = '👥 Collaborative Gallery - Everyone Can Edit!';
+                    document.getElementById('view-mode-indicator').className = 'view-mode-indicator rounded-lg bg-green-500';
+                    document.getElementById('view-mode-indicator').classList.remove('hidden');
+                    debugLog('Loaded shared gallery with', artworks.length, 'artworks');
+                } else {
+                    debugLog('Failed to decode shared gallery, loading from localStorage');
+                    loadDataFromStorage();
+                    isAdminMode = true;
+                }
+            } else {
+                debugLog('No URL parameters, loading from localStorage');
+                loadDataFromStorage();
+                isAdminMode = true;
+            }
+            
+            // Clear and rebuild gallery
+            const gallery = document.getElementById('gallery-grid');
+            gallery.innerHTML = '';
+            
+            debugLog('Rendering', artworks.length, 'artworks to gallery');
+            artworks.forEach(artwork => {
+                addArtworkToGallery(artwork);
+            });
+            
+            updateCategoryNav();
+            updateCategorySelects();
+            
+            if (isAdminMode) {
+                loadCategoriesList();
+                debugLog('Admin mode enabled');
+            } else {
+                debugLog('View-only mode (shared gallery)');
+            }
+            
+            // Show notification if this is a shared gallery
+            if (isSharedGallery) {
+                setTimeout(() => {
+                    showSharedGalleryNotification();
+                }, 500);
+            }
+            
+            debugLog('Initialization complete. Admin mode:', isAdminMode, 'Artworks:', artworks.length);
+        });
+
+        // Category filtering
+        function filterCategory(category) {
+            const galleryItems = document.querySelectorAll('.gallery-item');
+            const categoryBtns = document.querySelectorAll('.category-btn');
+            
+            // Update active button
+            categoryBtns.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Filter artworks
+            galleryItems.forEach(item => {
+                const itemId = parseInt(item.getAttribute('data-id'));
+                const artwork = artworks.find(a => a.id === itemId);
+                
+                if (category === 'all' || (artwork && artwork.category === category)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // Update category navigation
+        function updateCategoryNav() {
+            const categoryNav = document.getElementById('category-nav');
+            categoryNav.className = 'flex items-center space-x-4';
+            categoryNav.innerHTML = `
+                <button onclick="filterCategory('all')" class="category-btn active text-gray-600 hover:text-red-500 transition-all duration-300 hover:scale-110 hover:-translate-y-1 px-2 py-2">All</button>
+            `;
+            
+            categories.forEach(category => {
+                const btn = document.createElement('button');
+                btn.onclick = () => filterCategory(category);
+                btn.className = 'category-btn text-gray-600 hover:text-red-500 transition-all duration-300 hover:scale-110 hover:-translate-y-1 px-2 py-2';
+                
+                // Display friendly names
+                let displayName = category;
+                if (category === 'notableportraits') {
+                    displayName = 'Notable Portraits';
+                } else if (category === 'clientportraits') {
+                    displayName = 'Client Portraits';
+                } else {
+                    displayName = category.charAt(0).toUpperCase() + category.slice(1);
+                }
+                
+                btn.textContent = displayName;
+                categoryNav.appendChild(btn);
+            });
+        }
+
+        // Update category selects
+        function updateCategorySelects() {
+            const selects = ['new-category', 'quick-edit-category'];
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (select) {
+                    const firstOption = select.firstElementChild;
+                    select.innerHTML = '';
+                    select.appendChild(firstOption);
+                    
+                    categories.forEach(category => {
+                        const option = document.createElement('option');
+                        option.value = category;
+                        
+                        // Display friendly names
+                        let displayName = category;
+                        if (category === 'notableportraits') {
+                            displayName = 'Notable Portraits';
+                        } else if (category === 'clientportraits') {
+                            displayName = 'Client Portraits';
+                        } else {
+                            displayName = category.charAt(0).toUpperCase() + category.slice(1);
+                        }
+                        
+                        option.textContent = displayName;
+                        select.appendChild(option);
+                    });
+                }
+            });
+        }
+
+        // Artwork detail modal
+        function openArtworkModal(id) {
+            const artwork = artworks.find(a => a.id === id);
+            if (artwork) {
+                document.getElementById('modal-title').textContent = artwork.title;
+                document.getElementById('modal-description').textContent = artwork.description;
+                document.getElementById('modal-timestamp').textContent = artwork.timestamp;
+                
+                const imageContainer = document.getElementById('modal-image-container');
+                if (artwork.image) {
+                    imageContainer.innerHTML = `<img src="${artwork.image}" alt="${artwork.title}" class="max-w-full max-h-full object-contain">`;
+                } else {
+                    imageContainer.innerHTML = `<svg class="w-32 h-32 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                    </svg>`;
+                }
+                
+                document.getElementById('artwork-modal').classList.remove('hidden');
+            }
+        }
+
+        document.getElementById('close-artwork-modal').addEventListener('click', function() {
+            document.getElementById('artwork-modal').classList.add('hidden');
+        });
+
+        document.getElementById('artwork-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.add('hidden');
+            }
+        });
+
+        // Category management functions
+        function loadCategoriesList() {
+            const categoriesList = document.getElementById('categories-list');
+            if (!categoriesList) return;
+            
+            categoriesList.innerHTML = '';
+            
+            categories.forEach(category => {
+                const categoryItem = document.createElement('div');
+                categoryItem.className = 'flex justify-between items-center bg-gray-50 px-4 py-2 rounded-lg';
+                
+                // Display friendly names
+                let displayName = category;
+                if (category === 'notableportraits') {
+                    displayName = 'Notable Portraits';
+                } else if (category === 'clientportraits') {
+                    displayName = 'Client Portraits';
+                } else {
+                    displayName = category.charAt(0).toUpperCase() + category.slice(1);
+                }
+                
+                categoryItem.innerHTML = `
+                    <span class="font-medium">${displayName}</span>
+                    <div class="flex space-x-2">
+                        <button onclick="editCategory('${category}')" class="text-blue-500 hover:text-blue-700 text-sm">Edit</button>
+                        <button onclick="deleteCategory('${category}')" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
+                    </div>
+                `;
+                categoriesList.appendChild(categoryItem);
+            });
+        }
+
+        function editCategory(oldCategory) {
+            debugLog('Starting edit category:', oldCategory);
+            
+            // Create custom edit dialog
+            const editDialog = document.createElement('div');
+            editDialog.className = 'fixed inset-0 bg-black bg-opacity-50 z-60 flex items-center justify-center p-4';
+            editDialog.innerHTML = `
+                <div class="bg-white rounded-lg max-w-md w-full p-6">
+                    <div class="text-center">
+                        <div class="text-blue-500 text-4xl mb-4">✏️</div>
+                        <h3 class="text-lg font-semibold text-black mb-2">แก้ไขชื่อหมวดหมู่</h3>
+                        <p class="text-gray-600 mb-4">แก้ไขชื่อหมวดหมู่ "<strong>${oldCategory}</strong>"</p>
+                        <input type="text" id="edit-category-input" value="${oldCategory}" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-6">
+                        <div class="flex space-x-3">
+                            <button id="save-category-edit" class="flex-1 bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                                บันทึก
+                            </button>
+                            <button id="cancel-category-edit" class="flex-1 bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400 transition-colors">
+                                ยกเลิก
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(editDialog);
+            
+            // Focus on input
+            const input = document.getElementById('edit-category-input');
+            input.focus();
+            input.select();
+            
+            // Handle save
+            document.getElementById('save-category-edit').addEventListener('click', function() {
+                const newName = input.value.trim();
+                debugLog('Attempting to save category edit:', { oldCategory, newName });
+                
+                if (!newName) {
+                    // Create custom alert
+                    const alertDialog = document.createElement('div');
+                    alertDialog.className = 'fixed inset-0 bg-black bg-opacity-50 z-70 flex items-center justify-center p-4';
+                    alertDialog.innerHTML = `
+                        <div class="bg-white rounded-lg max-w-sm w-full p-6 text-center">
+                            <div class="text-red-500 text-3xl mb-3">⚠️</div>
+                            <p class="text-gray-700 mb-4">กรุณากรอกชื่อหมวดหมู่</p>
+                            <button onclick="this.parentElement.parentElement.remove()" class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600">
+                                ตกลง
+                            </button>
+                        </div>
+                    `;
+                    document.body.appendChild(alertDialog);
+                    return;
+                }
+                
+                if (newName !== oldCategory) {
+                    const newCategory = newName.toLowerCase().replace(/\s+/g, '');
+                    
+                    // Check if category already exists
+                    if (categories.includes(newCategory)) {
+                        // Create custom alert
+                        const alertDialog = document.createElement('div');
+                        alertDialog.className = 'fixed inset-0 bg-black bg-opacity-50 z-70 flex items-center justify-center p-4';
+                        alertDialog.innerHTML = `
+                            <div class="bg-white rounded-lg max-w-sm w-full p-6 text-center">
+                                <div class="text-yellow-500 text-3xl mb-3">⚠️</div>
+                                <p class="text-gray-700 mb-4">หมวดหมู่นี้มีอยู่แล้ว</p>
+                                <button onclick="this.parentElement.parentElement.remove()" class="bg-yellow-500 text-white px-6 py-2 rounded-lg hover:bg-yellow-600">
+                                    ตกลง
+                                </button>
+                            </div>
+                        `;
+                        document.body.appendChild(alertDialog);
+                        return;
+                    }
+                    
+                    debugLog('Editing category from', oldCategory, 'to', newCategory);
+                    
+                    // Update category in categories array
+                    const index = categories.indexOf(oldCategory);
+                    if (index !== -1) {
+                        categories[index] = newCategory;
+                        debugLog('Updated categories array at index', index);
+                    }
+                    
+                    // Update artworks with this category
+                    let updatedCount = 0;
+                    artworks.forEach(artwork => {
+                        if (artwork.category === oldCategory) {
+                            artwork.category = newCategory;
+                            updatedCount++;
+                        }
+                    });
+                    
+                    debugLog('Updated', updatedCount, 'artworks with new category');
+                    
+                    // Update all UI components
+                    updateCategoryNav();
+                    updateCategorySelects();
+                    loadCategoriesList();
+                    saveDataToStorage();
+                    loadEditList(); // Refresh edit list to show updated categories
+                    
+                    // Show success notification
+                    showSuccessNotification('✅ แก้ไขสำเร็จ!', `เปลี่ยนชื่อหมวดหมู่เป็น "${newName}" แล้ว (${updatedCount} ผลงาน)`);
+                    
+                    debugLog('Category edit completed successfully');
+                } else {
+                    debugLog('No changes made to category name');
+                }
+                
+                editDialog.remove();
+            });
+            
+            // Handle cancel
+            document.getElementById('cancel-category-edit').addEventListener('click', function() {
+                debugLog('Category edit cancelled');
+                editDialog.remove();
+            });
+            
+            // Handle Enter key
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    document.getElementById('save-category-edit').click();
+                }
+            });
+            
+            // Close on backdrop click
+            editDialog.addEventListener('click', function(e) {
+                if (e.target === editDialog) {
+                    debugLog('Category edit cancelled by backdrop click');
+                    editDialog.remove();
+                }
+            });
+        }
+
+        function deleteCategory(category) {
+            debugLog('Starting delete category:', category);
+            
+            // Count artworks in this category
+            const artworksInCategory = artworks.filter(a => a.category === category).length;
+            debugLog('Artworks in category to delete:', artworksInCategory);
+            
+            // Create custom confirmation dialog
+            const confirmDialog = document.createElement('div');
+            confirmDialog.className = 'fixed inset-0 bg-black bg-opacity-50 z-60 flex items-center justify-center p-4';
+            confirmDialog.innerHTML = `
+                <div class="bg-white rounded-lg max-w-md w-full p-6">
+                    <div class="text-center">
+                        <div class="text-red-500 text-4xl mb-4">🗑️</div>
+                        <h3 class="text-lg font-semibold text-black mb-2">ยืนยันการลบหมวดหมู่</h3>
+                        <p class="text-gray-600 mb-4">คุณแน่ใจหรือไม่ที่จะลบหมวดหมู่<br><strong>"${category}"</strong></p>
+                        ${artworksInCategory > 0 ? 
+                            `<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                                <p class="text-sm text-yellow-800">
+                                    ⚠️ มีผลงาน ${artworksInCategory} รูปในหมวดนี้<br>
+                                    ผลงานจะยังคงอยู่ แต่จะไม่มีหมวดหมู่
+                                </p>
+                            </div>` : 
+                            `<p class="text-sm text-gray-500 mb-4">ไม่มีผลงานในหมวดนี้</p>`
+                        }
+                        <div class="flex space-x-3">
+                            <button id="confirm-category-delete" class="flex-1 bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors">
+                                ลบหมวดหมู่
+                            </button>
+                            <button id="cancel-category-delete" class="flex-1 bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400 transition-colors">
+                                ยกเลิก
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(confirmDialog);
+            
+            // Handle confirmation
+            document.getElementById('confirm-category-delete').addEventListener('click', function() {
+                debugLog('Confirming category deletion:', category);
+                debugLog('Categories before deletion:', categories);
+                debugLog('Artworks before deletion:', artworks.length);
+                
+                // Remove category from categories array
+                const originalCategoriesLength = categories.length;
+                categories = categories.filter(c => c !== category);
+                debugLog('Categories after deletion:', categories);
+                debugLog('Removed categories count:', originalCategoriesLength - categories.length);
+                
+                // Remove category from artworks (set to empty string)
+                let uncategorizedCount = 0;
+                artworks.forEach(artwork => {
+                    if (artwork.category === category) {
+                        artwork.category = '';
+                        uncategorizedCount++;
+                        debugLog('Uncategorized artwork:', artwork.title);
+                    }
+                });
+                
+                debugLog('Total uncategorized artworks:', uncategorizedCount);
+                
+                // Update all UI components
+                updateCategoryNav();
+                updateCategorySelects();
+                loadCategoriesList();
+                saveDataToStorage();
+                loadEditList(); // Refresh edit list to show updated categories
+                
+                // Remove confirmation dialog
+                confirmDialog.remove();
+                
+                // Show success notification
+                const message = artworksInCategory > 0 ? 
+                    `ลบหมวดหมู่ "${category}" แล้ว (${uncategorizedCount} ผลงานไม่มีหมวดหมู่)` :
+                    `ลบหมวดหมู่ "${category}" แล้ว`;
+                showSuccessNotification('🗑️ ลบสำเร็จ!', message);
+                
+                debugLog('Successfully deleted category:', category);
+                debugLog('Final categories:', categories);
+                debugLog('Final artworks count:', artworks.length);
+            });
+            
+            // Handle cancellation
+            document.getElementById('cancel-category-delete').addEventListener('click', function() {
+                debugLog('Category deletion cancelled');
+                confirmDialog.remove();
+            });
+            
+            // Close on backdrop click
+            confirmDialog.addEventListener('click', function(e) {
+                if (e.target === confirmDialog) {
+                    debugLog('Category deletion cancelled by backdrop click');
+                    confirmDialog.remove();
+                }
+            });
+        }
+
+        // Add new category
+        document.getElementById('add-category').addEventListener('click', function() {
+            const categoryName = document.getElementById('new-category-name').value.trim();
+            debugLog('Attempting to add new category:', categoryName);
+            
+            if (!categoryName) {
+                // Create custom alert
+                const alertDialog = document.createElement('div');
+                alertDialog.className = 'fixed inset-0 bg-black bg-opacity-50 z-60 flex items-center justify-center p-4';
+                alertDialog.innerHTML = `
+                    <div class="bg-white rounded-lg max-w-sm w-full p-6 text-center">
+                        <div class="text-red-500 text-3xl mb-3">⚠️</div>
+                        <p class="text-gray-700 mb-4">กรุณากรอกชื่อหมวดหมู่</p>
+                        <button onclick="this.parentElement.parentElement.remove()" class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600">
+                            ตกลง
+                        </button>
+                    </div>
+                `;
+                document.body.appendChild(alertDialog);
+                return;
+            }
+            
+            const newCategory = categoryName.toLowerCase().replace(/\s+/g, '');
+            debugLog('Processed category name:', newCategory);
+            debugLog('Current categories:', categories);
+            
+            if (categories.includes(newCategory)) {
+                // Create custom alert
+                const alertDialog = document.createElement('div');
+                alertDialog.className = 'fixed inset-0 bg-black bg-opacity-50 z-60 flex items-center justify-center p-4';
+                alertDialog.innerHTML = `
+                    <div class="bg-white rounded-lg max-w-sm w-full p-6 text-center">
+                        <div class="text-yellow-500 text-3xl mb-3">⚠️</div>
+                        <p class="text-gray-700 mb-4">หมวดหมู่นี้มีอยู่แล้ว</p>
+                        <button onclick="this.parentElement.parentElement.remove()" class="bg-yellow-500 text-white px-6 py-2 rounded-lg hover:bg-yellow-600">
+                            ตกลง
+                        </button>
+                    </div>
+                `;
+                document.body.appendChild(alertDialog);
+                return;
+            }
+            
+            debugLog('Adding new category to array');
+            categories.push(newCategory);
+            debugLog('Categories after addition:', categories);
+            
+            // Update all UI components
+            updateCategoryNav();
+            updateCategorySelects();
+            loadCategoriesList();
+            saveDataToStorage();
+            
+            // Clear input
+            document.getElementById('new-category-name').value = '';
+            
+            // Show success notification
+            showSuccessNotification('✅ เพิ่มสำเร็จ!', `เพิ่มหมวดหมู่ "${categoryName}" แล้ว`);
+            
+            debugLog('Successfully added new category:', newCategory);
+        });
+
+        // Admin panel toggle - Everyone has access now!
+        document.getElementById('admin-toggle').addEventListener('click', function() {
+            document.getElementById('admin-modal').classList.remove('hidden');
+            loadEditList();
+            loadCategoriesList();
+            updateCategorySelects();
+        });
+
+        document.getElementById('close-admin').addEventListener('click', function() {
+            document.getElementById('admin-modal').classList.add('hidden');
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('admin-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.add('hidden');
+            }
+        });
+
+        // Quick edit modal
+        function openQuickEdit(id) {
+            const artwork = artworks.find(a => a.id === id);
+            if (artwork) {
+                currentEditId = id;
+                document.getElementById('quick-edit-title').value = artwork.title;
+                document.getElementById('quick-edit-description').value = artwork.description;
+                document.getElementById('quick-edit-category').value = artwork.category || '';
+                document.getElementById('quick-edit-modal').classList.remove('hidden');
+            }
+        }
+
+        document.getElementById('close-quick-edit').addEventListener('click', function() {
+            document.getElementById('quick-edit-modal').classList.add('hidden');
+            currentEditId = null;
+        });
+
+        document.getElementById('quick-edit-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.add('hidden');
+                currentEditId = null;
+            }
+        });
+
+        // Add new artwork
+        document.getElementById('add-artwork').addEventListener('click', function() {
+            const title = document.getElementById('new-title').value.trim();
+            const description = document.getElementById('new-description').value.trim();
+            const category = document.getElementById('new-category').value;
+            const imageFile = document.getElementById('new-image').files[0];
+
+            if (!title || !description) {
+                alert('Please fill in title and description');
+                return;
+            }
+
+            artworkCounter++;
+            const newArtwork = {
+                id: artworkCounter,
+                title: title,
+                description: description,
+                category: category,
+                image: null,
+                timestamp: new Date().toLocaleString()
+            };
+
+            debugLog('Creating new artwork:', newArtwork);
+
+            if (imageFile) {
+                debugLog('Processing image file:', imageFile.name, imageFile.size);
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    newArtwork.image = e.target.result;
+                    artworks.push(newArtwork);
+                    debugLog('Added artwork to array. Total artworks:', artworks.length);
+                    
+                    addArtworkToGallery(newArtwork);
+                    saveDataToStorage();
+                    loadEditList(); // Refresh edit list
+                    clearForm();
+                    
+                    debugLog('Added new artwork with image:', newArtwork.title);
+                    
+                    // Show success notification with auto-save info
+                    showSuccessNotification('เพิ่มผลงานสำเร็จ!', `"${title}" ถูกเพิ่มเข้าแกลเลอรี่และบันทึกอัตโนมัติแล้ว`);
+                };
+                reader.onerror = function() {
+                    debugLog('Error reading image file');
+                    alert('เกิดข้อผิดพลาดในการอ่านไฟล์รูปภาพ');
+                };
+                reader.readAsDataURL(imageFile);
+            } else {
+                artworks.push(newArtwork);
+                debugLog('Added artwork to array. Total artworks:', artworks.length);
+                
+                addArtworkToGallery(newArtwork);
+                saveDataToStorage();
+                loadEditList(); // Refresh edit list
+                clearForm();
+                
+                debugLog('Added new artwork without image:', newArtwork.title);
+                
+                // Show success notification with auto-save info
+                showSuccessNotification('เพิ่มผลงานสำเร็จ!', `"${title}" ถูกเพิ่มเข้าแกลเลอรี่และบันทึกอัตโนมัติแล้ว`);
+            }
+        });
+
+        function clearForm() {
+            document.getElementById('new-title').value = '';
+            document.getElementById('new-description').value = '';
+            document.getElementById('new-category').value = '';
+            document.getElementById('new-image').value = '';
+        }
+
+        function addArtworkToGallery(artwork) {
+            const gallery = document.getElementById('gallery-grid');
+            const artworkElement = document.createElement('div');
+            artworkElement.className = 'gallery-item bg-white rounded-lg shadow-lg overflow-hidden fade-in cursor-pointer';
+            artworkElement.setAttribute('data-id', artwork.id);
+            artworkElement.setAttribute('onclick', `openArtworkModal(${artwork.id})`);
+
+            const imageContent = artwork.image ? 
+                `<img src="${artwork.image}" alt="${artwork.title}" class="w-full h-full object-cover">` :
+                `<svg class="w-24 h-24 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                </svg>`;
+
+            artworkElement.innerHTML = `
+                <div class="aspect-square bg-gray-100 flex items-center justify-center relative">
+                    ${imageContent}
+                    <div class="absolute top-2 right-2 text-xs text-gray-400 bg-white bg-opacity-75 px-2 py-1 rounded">
+                        <span id="timestamp-${artwork.id}">${artwork.timestamp}</span>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <h3 class="text-lg font-semibold text-black mb-2 transition-colors duration-300">${artwork.title}</h3>
+                    <p class="text-gray-600">${artwork.description}</p>
+                </div>
+            `;
+
+            gallery.appendChild(artworkElement);
+        }
+
+        function loadEditList() {
+            const editList = document.getElementById('edit-list');
+            if (!editList) return;
+            
+            editList.innerHTML = '';
+
+            artworks.forEach(artwork => {
+                let categoryName = artwork.category ? 
+                    artwork.category.charAt(0).toUpperCase() + artwork.category.slice(1) : 
+                    'No Category';
+                
+                // Display friendly names
+                if (artwork.category === 'notableportraits') {
+                    categoryName = 'Notable Portraits';
+                } else if (artwork.category === 'clientportraits') {
+                    categoryName = 'Client Portraits';
+                }
+                
+                const editItem = document.createElement('div');
+                editItem.className = 'border border-gray-200 rounded-lg p-4';
+                editItem.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h5 class="font-semibold text-black">${artwork.title}</h5>
+                            <p class="text-xs text-gray-400">Created: ${artwork.timestamp} | Category: ${categoryName}</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="openQuickEdit(${artwork.id})" class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors">Edit</button>
+                            <button onclick="deleteArtwork(${artwork.id})" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600">${artwork.description}</p>
+                `;
+                editList.appendChild(editItem);
+            });
+        }
+
+        // Quick edit save functionality
+        document.getElementById('save-quick-edit').addEventListener('click', function() {
+            if (currentEditId) {
+                const title = document.getElementById('quick-edit-title').value.trim();
+                const description = document.getElementById('quick-edit-description').value.trim();
+                const category = document.getElementById('quick-edit-category').value;
+                const imageFile = document.getElementById('quick-edit-image').files[0];
+
+                if (!title || !description) {
+                    alert('กรุณากรอกชื่อหัวข้อและคำอธิบาย');
+                    return;
+                }
+
+                const artwork = artworks.find(a => a.id === currentEditId);
+                if (artwork) {
+                    artwork.title = title;
+                    artwork.description = description;
+                    artwork.category = category;
+
+                    if (imageFile) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            artwork.image = e.target.result;
+                            updateGalleryItem(currentEditId);
+                            loadEditList();
+                            saveDataToStorage();
+                            document.getElementById('quick-edit-modal').classList.add('hidden');
+                            currentEditId = null;
+                            
+                            // Show success notification
+                            showSuccessNotification('แก้ไขสำเร็จ!', `"${title}" ถูกอัปเดตแล้ว`);
+                        };
+                        reader.readAsDataURL(imageFile);
+                    } else {
+                        updateGalleryItem(currentEditId);
+                        loadEditList();
+                        saveDataToStorage();
+                        document.getElementById('quick-edit-modal').classList.add('hidden');
+                        currentEditId = null;
+                        
+                        // Show success notification
+                        showSuccessNotification('แก้ไขสำเร็จ!', `"${title}" ถูกอัปเดตแล้ว`);
+                    }
+                }
+            }
+        });
+
+        // Quick edit delete functionality
+        document.getElementById('delete-quick-edit').addEventListener('click', function() {
+            if (currentEditId) {
+                const artwork = artworks.find(a => a.id === currentEditId);
+                const artworkTitle = artwork ? artwork.title : 'ผลงานนี้';
+                
+                if (confirm(`คุณแน่ใจหรือไม่ที่จะลบ "${artworkTitle}" ออกจากแกลเลอรี่?`)) {
+                    deleteArtwork(currentEditId);
+                    document.getElementById('quick-edit-modal').classList.add('hidden');
+                    currentEditId = null;
+                    
+                    // Show success notification
+                    showSuccessNotification('ลบสำเร็จ!', `"${artworkTitle}" ถูกลบออกจากแกลเลอรี่แล้ว`);
+                }
+            }
+        });
+
+        function updateGalleryItem(id) {
+            const artwork = artworks.find(a => a.id === id);
+            const element = document.querySelector(`[data-id="${id}"]`);
+            
+            if (artwork && element) {
+                const imageContent = artwork.image ? 
+                    `<img src="${artwork.image}" alt="${artwork.title}" class="w-full h-full object-cover">` :
+                    `<svg class="w-24 h-24 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                    </svg>`;
+
+                element.innerHTML = `
+                    <div class="aspect-square bg-gray-100 flex items-center justify-center relative">
+                        ${imageContent}
+                        <div class="absolute top-2 right-2 text-xs text-gray-400 bg-white bg-opacity-75 px-2 py-1 rounded">
+                            <span id="timestamp-${artwork.id}">${artwork.timestamp}</span>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-lg font-semibold text-black mb-2 transition-colors duration-300">${artwork.title}</h3>
+                        <p class="text-gray-600">${artwork.description}</p>
+                    </div>
+                `;
+                
+                element.setAttribute('onclick', `openArtworkModal(${artwork.id})`);
+            }
+        }
+
+        function deleteArtwork(id) {
+            const artwork = artworks.find(a => a.id === id);
+            const artworkTitle = artwork ? artwork.title : 'ผลงานนี้';
+            
+            // Create custom confirmation dialog
+            const confirmDialog = document.createElement('div');
+            confirmDialog.className = 'fixed inset-0 bg-black bg-opacity-50 z-60 flex items-center justify-center p-4';
+            confirmDialog.innerHTML = `
+                <div class="bg-white rounded-lg max-w-md w-full p-6">
+                    <div class="text-center">
+                        <div class="text-red-500 text-4xl mb-4">🗑️</div>
+                        <h3 class="text-lg font-semibold text-black mb-2">ยืนยันการลบ</h3>
+                        <p class="text-gray-600 mb-6">คุณแน่ใจหรือไม่ที่จะลบ<br><strong>"${artworkTitle}"</strong><br>ออกจากแกลเลอรี่?</p>
+                        <div class="flex space-x-3">
+                            <button id="confirm-delete" class="flex-1 bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors">
+                                ลบออก
+                            </button>
+                            <button id="cancel-delete" class="flex-1 bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400 transition-colors">
+                                ยกเลิก
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(confirmDialog);
+            
+            // Handle confirmation
+            document.getElementById('confirm-delete').addEventListener('click', function() {
+                debugLog('Deleting artwork with ID:', id);
+                debugLog('Artworks before deletion:', artworks.length);
+                
+                // Remove from artworks array
+                artworks = artworks.filter(a => a.id !== id);
+                debugLog('Artworks after deletion:', artworks.length);
+                
+                // Remove from gallery display
+                const element = document.querySelector(`[data-id="${id}"]`);
+                if (element) {
+                    element.style.transition = 'all 0.3s ease';
+                    element.style.transform = 'scale(0)';
+                    element.style.opacity = '0';
+                    setTimeout(() => {
+                        if (element.parentElement) {
+                            element.remove();
+                        }
+                    }, 300);
+                }
+                
+                // Refresh edit list and save
+                loadEditList();
+                saveDataToStorage();
+                
+                // Remove confirmation dialog
+                confirmDialog.remove();
+                
+                // Show success notification
+                showSuccessNotification('ลบสำเร็จ!', `"${artworkTitle}" ถูกลบออกจากแกลเลอรี่แล้ว`);
+                
+                debugLog('Successfully deleted artwork:', artworkTitle);
+            });
+            
+            // Handle cancellation
+            document.getElementById('cancel-delete').addEventListener('click', function() {
+                confirmDialog.remove();
+            });
+            
+            // Close on backdrop click
+            confirmDialog.addEventListener('click', function(e) {
+                if (e.target === confirmDialog) {
+                    confirmDialog.remove();
+                }
+            });
+        }
+
+        // Smooth scrolling for navigation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d08ddb4631f33b6',t:'MTc3MTUzNjYzMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
